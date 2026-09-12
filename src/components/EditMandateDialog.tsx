@@ -56,10 +56,8 @@ export function EditMandateDialog({ agentId, currentMandate }: { agentId: string
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-400">
-          Edit Mandate
-        </Button>
+      <DialogTrigger render={<Button variant="outline" className="border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-400" />}>
+        Edit Mandate
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-[#0f1015] border-white/10">
         <DialogHeader>

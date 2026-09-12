@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 3. Generic Service Execution Engine
-    let result = "";
+    let result: any = "";
     
     try {
       let documentText = "";
@@ -113,9 +113,83 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (isStorageRequest) {
         result = `[DECENTRALIZED STORAGE via ${provider.name}]:\n\nSuccessfully pinned file to IPFS and replicated across storage nodes.\n\nFile Size: ${rawBuffer?.length ? (rawBuffer.length / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown'}\nDuration: 30 days\nStatus: Secure`;
       } else if (isDataRequest) {
-        result = `[DATA PROCESSING via ${provider.name}]:\n\nDataset analysis complete. Invalid rows removed, columns normalized, and missing values interpolated.\n\nRows Processed: 14,520\nRows Removed (Invalid): 203\nDataset Quality Score: 99.8%\n\n[Download Cleaned Dataset (Simulated)](#)`;
+        const startTime = Date.now();
+        if (!rawBuffer) throw new Error("No CSV dataset provided. Please upload a file.");
+        
+        const Papa = require("papaparse");
+        const csvString = rawBuffer.toString("utf-8");
+        const parsed = Papa.parse(csvString, { header: true, skipEmptyLines: true });
+        
+        if (parsed.errors.length > 0) {
+           throw new Error(`CSV Parsing failed: ${parsed.errors[0].message}`);
+        }
+        
+        const inputRows = parsed.data.length;
+        let invalidRows = 0;
+        const uniqueSet = new Set();
+        const cleanedData = [];
+
+        for (const row of parsed.data as any[]) {
+          // Normalize and check
+          let isEmptyOrInvalid = false;
+          const cleanedRow: any = {};
+          
+          for (const key in row) {
+             const val = row[key] ? String(row[key]).trim() : "";
+             if (!val && (key.toLowerCase().includes("email") || key.toLowerCase().includes("id") || key.toLowerCase().includes("name"))) {
+                isEmptyOrInvalid = true; // Essential field missing
+             }
+             cleanedRow[key] = val;
+          }
+          
+          if (isEmptyOrInvalid) {
+            invalidRows++;
+            continue;
+          }
+
+          const stringified = JSON.stringify(cleanedRow);
+          if (uniqueSet.has(stringified)) {
+             // duplicate (we don't push)
+          } else {
+             uniqueSet.add(stringified);
+             cleanedData.push(cleanedRow);
+          }
+        }
+        
+        const duplicatesRemoved = inputRows - invalidRows - cleanedData.length;
+        const outputCsv = Papa.unparse(cleanedData);
+        
+        // Return structured JSON
+        result = {
+           success: true,
+           service: "data_processing",
+           inputFileName: "dataset.csv", // We don't have original filename unless passed, but we'll use a standard one
+           outputFileName: "dataset_cleaned.csv",
+           inputRows,
+           outputRows: cleanedData.length,
+           duplicatesRemoved,
+           invalidRowsRemoved: invalidRows,
+           emptyRowsRemoved: 0, // Handled by skipEmptyLines
+           processingTimeMs: Date.now() - startTime,
+           content: outputCsv
+        };
+
       } else if (isConversionRequest) {
-        result = `[FILE CONVERSION via ${provider.name}]:\n\nSuccessfully converted your document as requested.\n\nType: PDF Conversion Pipeline\nProcessing Time: 2.3 seconds\nIntegrity: Verified\n\n[Download Converted File (Simulated)](#)`;
+        const startTime = Date.now();
+        if (!rawBuffer) throw new Error("No file provided for conversion.");
+        if (!documentText) throw new Error("Could not extract text from document.");
+        
+        result = {
+          success: true,
+          service: "file_conversion",
+          inputFormat: contentType.includes("pdf") || rawBuffer.toString('utf-8', 0, 4) === "%PDF" ? "pdf" : "unknown",
+          outputFormat: "txt",
+          inputFileName: "document.pdf",
+          outputFileName: "document.txt",
+          outputSize: documentText.length,
+          content: documentText,
+          processingTimeMs: Date.now() - startTime
+        };
       } else if (isImageRequest) {
         // PRODUCTION STYLE: Free Image Generation API (Pollinations.ai)
         const safePrompt = input?.length ? encodeURIComponent(input) : "random";
@@ -179,7 +253,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // Generate evidence
-    const resultHash = crypto.createHash('sha256').update(result).digest('hex');
+    const resultString = typeof result === "string" ? result : JSON.stringify(result);
+    const resultHash = crypto.createHash('sha256').update(resultString).digest('hex');
     const evidenceCid = `QmSimulatedEvidence${Date.now()}`; // Simulated IPFS CID
 
     return NextResponse.json({

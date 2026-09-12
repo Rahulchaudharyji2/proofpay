@@ -19,11 +19,18 @@ export function ConnectWallet({ layout = "sidebar" }: { layout?: "sidebar" | "na
   }, []);
 
   useEffect(() => {
+    // Set cookie for server components
+    if (isConnected && address) {
+      document.cookie = `walletAddress=${address}; path=/`;
+    } else {
+      document.cookie = `walletAddress=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    }
+
     // If wallet disconnects, and we are not on the landing page, redirect to home.
     if (mounted && !isConnected && pathname !== "/") {
       router.push("/");
     }
-  }, [isConnected, pathname, router, mounted]);
+  }, [isConnected, address, pathname, router, mounted]);
 
   if (!mounted) {
     return (

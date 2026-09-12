@@ -10,7 +10,7 @@ import { CheckCircle2, Circle, ArrowRight, Loader2 } from "lucide-react";
 export default function TaskDetailPage() {
   const { id } = useParams();
   const [task, setTask] = useState<any>(null);
-  const [taskResult, setTaskResult] = useState<string>("");
+  const [taskResult, setTaskResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
@@ -49,16 +49,14 @@ export default function TaskDetailPage() {
     if (task.executionMode === "AUTO") {
       if (task.status === "CREATED" && !executedStates.current.has("CREATED")) {
         executedStates.current.add("CREATED");
-        const timer = setTimeout(() => {
+        setTimeout(() => {
           runDecision();
         }, 1000);
-        return () => clearTimeout(timer);
       } else if (task.status === "PROVIDER_SELECTED" && !executedStates.current.has("PROVIDER_SELECTED")) {
         executedStates.current.add("PROVIDER_SELECTED");
-        const timer = setTimeout(() => {
+        setTimeout(() => {
           runExecution();
         }, 1000);
-        return () => clearTimeout(timer);
       }
     }
   }, [task, executing]);
@@ -190,15 +188,84 @@ export default function TaskDetailPage() {
 
           {(task.status === "SETTLED" && taskResult) && (
             <Card className="border-emerald-500/50">
-              <CardHeader className="bg-emerald-500/10">
-                <CardTitle className="text-emerald-500 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" /> Final AI Result
+              <CardHeader className="bg-emerald-500/10 border-b border-emerald-500/20">
+                <CardTitle className="text-emerald-500 flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" /> Verified Outcome
+                   </div>
+                   {typeof taskResult === 'object' && taskResult.content && (
+                     <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500 hover:bg-emerald-500/20" onClick={() => {
+                       const blob = new Blob([taskResult.content], { type: taskResult.service === 'data_processing' ? 'text/csv' : 'text/plain' });
+                       const url = window.URL.createObjectURL(blob);
+                       const a = document.createElement('a');
+                       a.href = url;
+                       a.download = taskResult.outputFileName || 'output.txt';
+                       a.click();
+                       window.URL.revokeObjectURL(url);
+                     }}>
+                        Download {taskResult.outputFileName || 'File'}
+                     </Button>
+                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap font-mono">
-                  {taskResult}
-                </div>
+                {typeof taskResult === 'object' ? (
+                  <div className="space-y-4">
+                    {taskResult.service === 'data_processing' && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Input Rows</p>
+                           <p className="font-mono text-lg">{taskResult.inputRows}</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Output Rows</p>
+                           <p className="font-mono text-lg text-emerald-500">{taskResult.outputRows}</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Duplicates Removed</p>
+                           <p className="font-mono text-lg text-destructive">{taskResult.duplicatesRemoved}</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Invalid Removed</p>
+                           <p className="font-mono text-lg text-destructive">{taskResult.invalidRowsRemoved}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {taskResult.service === 'file_conversion' && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Input Format</p>
+                           <p className="font-mono text-lg uppercase">{taskResult.inputFormat}</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Output Format</p>
+                           <p className="font-mono text-lg uppercase text-emerald-500">{taskResult.outputFormat}</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Output Size</p>
+                           <p className="font-mono text-lg">{(taskResult.outputSize / 1024).toFixed(2)} KB</p>
+                        </div>
+                        <div className="bg-muted p-3 rounded text-center">
+                           <p className="text-xs text-muted-foreground uppercase">Processing Time</p>
+                           <p className="font-mono text-lg">{taskResult.processingTimeMs} ms</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase mb-2">Content Preview</p>
+                      <div className="bg-black border border-white/10 p-4 rounded-md text-sm whitespace-pre-wrap font-mono h-48 overflow-y-auto text-slate-300">
+                        {taskResult.content?.substring(0, 1000)}
+                        {taskResult.content?.length > 1000 && "\n\n... [Content Truncated in Preview]"}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted p-4 rounded-md text-sm whitespace-pre-wrap font-mono">
+                    {taskResult}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

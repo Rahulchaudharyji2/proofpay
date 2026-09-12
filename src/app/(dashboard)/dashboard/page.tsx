@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, ShieldAlert, CheckCircle, Database, Sparkles, Server, Zap, ShieldCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
+import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +19,17 @@ export default async function DashboardPage() {
   };
 
   try {
-    const mandates = await prisma.mandate.findMany({ where: { status: "ACTIVE" } });
-    const settledTasks = await prisma.task.findMany({ where: { status: "SETTLED" } });
-    const events = await prisma.securityEvent.count();
+    const cookieStore = await cookies();
+    const walletAddress = cookieStore.get('walletAddress')?.value;
+    
+    // If no wallet connected, we could show 0 or keep it global. Let's filter strictly:
+    const agentFilter = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
+
+    const mandates = await prisma.mandate.findMany({ where: { status: "ACTIVE", ...agentFilter } });
+    const settledTasks = await prisma.task.findMany({ where: { status: "SETTLED", ...agentFilter } });
+    const events = await prisma.securityEvent.count({
+      where: walletAddress ? { task: { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } } : {}
+    });
     const providers = await prisma.provider.count({ where: { status: "ACTIVE" } });
 
     const totalSpent = settledTasks.reduce((acc, t) => acc + (t.paymentAmount || 0), 0);

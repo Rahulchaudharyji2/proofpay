@@ -2,13 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/db/prisma";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+export const dynamic = 'force-dynamic';
 
 export default async function TasksPage() {
   let tasks: any[] = [];
   try {
+    const cookieStore = await cookies();
+    const walletAddress = cookieStore.get('walletAddress')?.value;
+    console.log("[DEBUG] TasksPage cookie walletAddress:", walletAddress);
+    
+    const agentFilter = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
+
     tasks = await prisma.task.findMany({
+      where: { ...agentFilter },
       include: { provider: { include: { metrics: true } } },
       orderBy: { createdAt: "desc" },
       take: 10,
