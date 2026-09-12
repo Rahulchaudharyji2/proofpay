@@ -102,9 +102,18 @@ export default async function TasksPage() {
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Proof</p>
-                        <div className="mt-1">
-                           <p className="text-xs font-mono truncate text-slate-400">Hash: {task.paymentId}</p>
-                           <p className="text-xs font-mono text-indigo-400 hover:underline cursor-pointer truncate">IPFS: {task.resultCid}</p>
+                        <div className="mt-1 space-y-1">
+                           <p className="text-xs font-mono truncate text-slate-400">Hash: {task.paymentId || "N/A"}</p>
+                           {task.attachedFileCid && (
+                             <a href={`https://gateway.pinata.cloud/ipfs/${task.attachedFileCid}`} target="_blank" rel="noreferrer" className="block text-xs font-mono text-blue-400 hover:underline truncate">
+                               File: {task.attachedFileCid}
+                             </a>
+                           )}
+                           {task.resultCid && (
+                             <a href={`https://gateway.pinata.cloud/ipfs/${task.resultCid}`} target="_blank" rel="noreferrer" className="block text-xs font-mono text-indigo-400 hover:underline truncate">
+                               Proof: {task.resultCid}
+                             </a>
+                           )}
                         </div>
                       </div>
                       <div>

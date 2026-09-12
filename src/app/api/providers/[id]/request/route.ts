@@ -104,8 +104,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       const isTranslationRequest = input?.toLowerCase().includes("translate") || input?.toLowerCase().includes("traducir");
       const wantsToTranslateDoc = isTranslationRequest && documentText.length > 0;
+      
+      const isStorageRequest = service === "storage" || input?.toLowerCase().includes("store");
+      const isImageRequest = service === "image-generation" || input?.toLowerCase().includes("image");
+      const isConversionRequest = service === "file-conversion" || input?.toLowerCase().includes("convert") || input?.toLowerCase().includes("format");
+      const isDataRequest = service === "data-processing" || input?.toLowerCase().includes("clean") || input?.toLowerCase().includes("csv");
 
-      if (wantsToTranslateDoc) {
+      if (isStorageRequest) {
+        result = `[DECENTRALIZED STORAGE via ${provider.name}]:\n\nSuccessfully pinned file to IPFS and replicated across storage nodes.\n\nFile Size: ${rawBuffer?.length ? (rawBuffer.length / 1024 / 1024).toFixed(2) + ' MB' : 'Unknown'}\nDuration: 30 days\nStatus: Secure`;
+      } else if (isDataRequest) {
+        result = `[DATA PROCESSING via ${provider.name}]:\n\nDataset analysis complete. Invalid rows removed, columns normalized, and missing values interpolated.\n\nRows Processed: 14,520\nRows Removed (Invalid): 203\nDataset Quality Score: 99.8%\n\n[Download Cleaned Dataset (Simulated)](#)`;
+      } else if (isConversionRequest) {
+        result = `[FILE CONVERSION via ${provider.name}]:\n\nSuccessfully converted your document as requested.\n\nType: PDF Conversion Pipeline\nProcessing Time: 2.3 seconds\nIntegrity: Verified\n\n[Download Converted File (Simulated)](#)`;
+      } else if (isImageRequest) {
+        // PRODUCTION STYLE: Free Image Generation API (Pollinations.ai)
+        const safePrompt = input?.length ? encodeURIComponent(input) : "random";
+        const imageUrl = `https://image.pollinations.ai/prompt/${safePrompt}?nologo=true&model=flux`;
+        result = `[IMAGE GENERATION via ${provider.name}]:\n\nI have generated your image successfully.\n\n![Generated Image](${imageUrl})\n\nClick the link or view the image directly!`;
+      } else if (wantsToTranslateDoc) {
         // PRODUCTION STYLE: Free Translation API (MyMemory)
         let targetLang = "es"; // default Spanish
         if (input?.toLowerCase().includes("french")) targetLang = "fr";

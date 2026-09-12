@@ -40,7 +40,7 @@ export default function CreateAgentPage() {
           totalBudget: formData.totalBudget,
           dailyLimit: formData.dailyLimit,
           perTransactionLimit: formData.perTransactionLimit,
-          allowedServices: ["translation", "ai-inference", "documents", "search", "summarization", "compute", "storage", "ocr"], // Defaulting for demo
+          allowedServices: ["translation", "ai-inference", "documents", "search", "summarization", "compute", "storage", "ocr", "image-generation", "file-conversion", "data-processing"], // Defaulting for demo
           ownerAddress: address,
         }),
       });

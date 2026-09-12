@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
         serviceType = "ai-inference";
       } else if (p.includes("translate") || p.includes("language")) {
         serviceType = "translation";
+      } else if (p.includes("store") || p.includes("save") || p.includes("upload")) {
+        serviceType = "storage";
+      } else if (p.includes("image") || p.includes("picture") || p.includes("draw")) {
+        serviceType = "image-generation";
+      } else if (p.includes("convert") || p.includes("format") || p.includes("pdf to") || p.includes("word to")) {
+        serviceType = "file-conversion";
+      } else if (p.includes("clean") || p.includes("csv") || p.includes("data") || p.includes("invalid rows")) {
+        serviceType = "data-processing";
       }
     }
 

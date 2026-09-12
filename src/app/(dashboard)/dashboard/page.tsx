@@ -19,17 +19,21 @@ export default async function DashboardPage() {
 
   try {
     const mandates = await prisma.mandate.findMany({ where: { status: "ACTIVE" } });
-    const tasks = await prisma.task.count({ where: { status: "SETTLED" } });
+    const settledTasks = await prisma.task.findMany({ where: { status: "SETTLED" } });
     const events = await prisma.securityEvent.count();
     const providers = await prisma.provider.count({ where: { status: "ACTIVE" } });
 
+    const totalSpent = settledTasks.reduce((acc, t) => acc + (t.paymentAmount || 0), 0);
+
     if (mandates.length > 0) {
       stats.budget = mandates.reduce((acc, m) => acc + m.totalBudget, 0);
-      stats.spent = mandates.reduce((acc, m) => acc + m.totalSpent, 0);
+      stats.spent = totalSpent;
       stats.remaining = stats.budget - stats.spent;
       stats.perTxLimit = mandates[0].perTransactionLimit;
+    } else {
+      stats.spent = totalSpent;
     }
-    stats.tasksCompleted = tasks;
+    stats.tasksCompleted = settledTasks.length;
     stats.securityEvents = events;
     stats.providers = providers;
   } catch (error) {

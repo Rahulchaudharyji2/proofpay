@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,18 +41,24 @@ export default function TaskDetailPage() {
   }, [id]);
 
   // Frontend Orchestrator for AUTO mode
+  const executedStates = React.useRef(new Set<string>());
+
   useEffect(() => {
     if (!task || executing) return;
 
     if (task.executionMode === "AUTO") {
-      if (task.status === "CREATED") {
-        setTimeout(() => {
+      if (task.status === "CREATED" && !executedStates.current.has("CREATED")) {
+        executedStates.current.add("CREATED");
+        const timer = setTimeout(() => {
           runDecision();
-        }, 1000); // Small delay to let the user read the log
-      } else if (task.status === "PROVIDER_SELECTED") {
-        setTimeout(() => {
+        }, 1000);
+        return () => clearTimeout(timer);
+      } else if (task.status === "PROVIDER_SELECTED" && !executedStates.current.has("PROVIDER_SELECTED")) {
+        executedStates.current.add("PROVIDER_SELECTED");
+        const timer = setTimeout(() => {
           runExecution();
         }, 1000);
+        return () => clearTimeout(timer);
       }
     }
   }, [task, executing]);
@@ -155,12 +161,28 @@ export default function TaskDetailPage() {
                     <p className="font-mono text-sm mt-1">${task.paymentAmount || "0.00"}</p>
                   </div>
                   <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Uploaded File (CID)</p>
+                    {task.attachedFileCid ? (
+                      <a href={`https://gateway.pinata.cloud/ipfs/${task.attachedFileCid}`} target="_blank" rel="noreferrer" className="font-mono text-xs mt-1 text-blue-500 hover:underline truncate block">
+                        {task.attachedFileCid}
+                      </a>
+                    ) : (
+                      <p className="font-mono text-xs mt-1 truncate">None</p>
+                    )}
+                  </div>
+                  <div>
                     <p className="text-xs text-muted-foreground uppercase font-semibold">Result Hash</p>
                     <p className="font-mono text-xs mt-1 truncate">{task.resultHash || "Pending..."}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-semibold">IPFS Evidence (CID)</p>
-                    <p className="font-mono text-xs mt-1 text-blue-500 truncate">{task.resultCid || "Pending..."}</p>
+                    {task.resultCid ? (
+                      <a href={`https://gateway.pinata.cloud/ipfs/${task.resultCid}`} target="_blank" rel="noreferrer" className="font-mono text-xs mt-1 text-blue-500 hover:underline truncate block">
+                        {task.resultCid}
+                      </a>
+                    ) : (
+                      <p className="font-mono text-xs mt-1 text-blue-500 truncate">Pending...</p>
+                    )}
                   </div>
                </div>
             </CardContent>
