@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    if (agent.ownerAddress.toLowerCase() !== ownerAddress.toLowerCase()) {
+    if (agent.ownerAddress?.toLowerCase() !== ownerAddress.toLowerCase()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

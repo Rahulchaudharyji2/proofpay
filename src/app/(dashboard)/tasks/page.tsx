@@ -15,7 +15,7 @@ export default async function TasksPage() {
     const walletAddress = cookieStore.get('walletAddress')?.value;
     console.log("[DEBUG] TasksPage cookie walletAddress:", walletAddress);
     
-    const agentFilter = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
+    const agentFilter: any = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
 
     tasks = await prisma.task.findMany({
       where: { ...agentFilter },

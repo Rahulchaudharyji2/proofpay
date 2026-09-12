@@ -23,7 +23,7 @@ export default async function DashboardPage() {
     const walletAddress = cookieStore.get('walletAddress')?.value;
     
     // If no wallet connected, we could show 0 or keep it global. Let's filter strictly:
-    const agentFilter = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
+    const agentFilter: any = walletAddress ? { agent: { ownerAddress: { equals: walletAddress, mode: 'insensitive' } } } : {};
 
     const mandates = await prisma.mandate.findMany({ where: { status: "ACTIVE", ...agentFilter } });
     const settledTasks = await prisma.task.findMany({ where: { status: "SETTLED", ...agentFilter } });

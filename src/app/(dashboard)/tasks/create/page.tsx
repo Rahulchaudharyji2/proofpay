@@ -132,7 +132,7 @@ export default function CreateTaskPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
               <div className="space-y-2">
                 <Label className="text-slate-300">Select Agent</Label>
-                <Select value={formData.agentId} onValueChange={(val) => setFormData({...formData, agentId: val})}>
+                <Select value={formData.agentId} onValueChange={(val) => { if (val) setFormData({...formData, agentId: val}) }}>
                   <SelectTrigger className="bg-black/40 border-white/10 text-white focus:ring-indigo-500">
                     <SelectValue placeholder="Select Agent" />
                   </SelectTrigger>
@@ -146,7 +146,7 @@ export default function CreateTaskPage() {
 
               <div className="space-y-2">
                 <Label className="text-slate-300">Execution Mode</Label>
-                <Select value={executionMode} onValueChange={setExecutionMode}>
+                <Select value={executionMode} onValueChange={(val) => { if (val) setExecutionMode(val) }}>
                   <SelectTrigger className="bg-black/40 border-white/10 text-white focus:ring-indigo-500">
                     <SelectValue placeholder="Select Mode" />
                   </SelectTrigger>
