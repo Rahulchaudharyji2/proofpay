@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agent {
+  id        String   @id @default(uuid())
+  address   String   @unique
+  name        String
+  description String?
+  purpose     String?
+  status      String   @default("ACTIVE") // ACTIVE, FROZEN
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ownerAddress String? // Connected Web3 Wallet Address
+
+  mandates  Mandate[]
+  tasks     Task[]
+}
+
+model Mandate {
+  id                  String   @id @default(uuid())
+  agentId             String
+  agent               Agent    @relation(fields: [agentId], references: [id])
+  totalBudget         Float
+  dailyLimit          Float
+  perTransactionLimit Float
+  allowedServices     String[] // e.g., ["translation", "compute"]
+  minimumQuality      Float?
+  minimumReliability  Float?
+  maxLatency          Int?
+  status              String   @default("ACTIVE") // ACTIVE, FROZEN, EXPIRED
+  expiresAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Provider {
+  id          String   @id @default(uuid())
+  address     String   @unique
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  metrics     ProviderMetric?
+  tasks       Task[]
+  services    ProviderService[]
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  category    String
+  description String
+  unit        String
+  basePrice   Float
+  active      Boolean  @default(true)
+  providers   ProviderService[]
+}
+
+model ProviderService {
+  providerId  String
+  serviceId   String
+  
+  provider    Provider @relation(fields: [providerId], references: [id])
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  @@id([providerId, serviceId])
+}
+
+model ProviderMetric {
+  id                 String   @id @default(uuid())
+  providerId         String   @unique
+  provider           Provider @relation(fields: [providerId], references: [id])
+  price              Float
+  quality            Float    // 0-100
+  reliability        Float    // 0-100
+  latencyMs          Int
+  jobsCompleted      Int      @default(0)
+  jobsFailed         Int      @default(0)
+  disputes           Int      @default(0)
+  verifiedOutcomes   Int      @default(0)
+  trustScore         Float    @default(50) // 0-100
+  updatedAt          DateTime @updatedAt
+}
+
+model Task {
+  id              String   @id @default(uuid()) // TASK-xxx
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  description     String
+  serviceType     String
+  status          String   @default("CREATED") // CREATED, PROVIDER_SELECTED, PAYMENT_REQUIRED, AUTHORIZED, ESCROWED, DELIVERED, VERIFIED, SETTLED, FAILED
+  executionMode   String   @default("MANUAL") // MANUAL, AUTO
+  selectedProviderId String?
+  provider        Provider? @relation(fields: [selectedProviderId], references: [id])
+  
+  // IPFS / Delivery
+  attachedFileCid String?
+  resultCid       String?
+  resultHash      String?
+  deliveryHash    String?
+  
+  // Payment
+  paymentAmount   Float?
+  paymentIntent   String?  @unique
+  paymentId       String?  @unique
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  auditEvents     AuditEvent[]
+  securityEvents  SecurityEvent[]
+  decision        Decision?
+}
+
+model Decision {
+  id                 String   @id @default(uuid())
+  taskId             String   @unique
+  task               Task     @relation(fields: [taskId], references: [id])
+  selectedProviderId String
+  rationale          Json
+  createdAt          DateTime @default(now())
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  eventType   String   // TASK_CREATED, PROVIDER_SELECTED, etc.
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+model SecurityEvent {
+  id          String   @id @default(uuid())
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id])
+  eventType   String   // OVERSPEND_BLOCKED, DUPLICATE_BLOCKED, PROMPT_INJECTION_BLOCKED
+  severity    String   // LOW, MEDIUM, HIGH, CRITICAL
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
