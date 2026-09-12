@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // STEP 4: On-Chain Escrow 
     const paymentId = `PAY-${task.id.substring(0,8)}-${Date.now()}`;
-    const amountRequestedWei = ethers.parseEther(amountRequested.toString());
+    const amountRequestedWei = ethers.parseUnits(amountRequested.toString(), "mwei");
     const escrowContract = getPaymentEscrowContract();
     
     console.log("Calling escrowPayment on-chain...");
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       console.log(`escrowPayment confirmed: ${tx.hash}`);
     } catch (e: any) {
       console.error("Smart contract escrow failed:", e.message);
-      return await failWithSecurityEvent("CONTRACT_REVERT", `Escrow failed: ${e.message}`);
+      return await failWithSecurityEvent("CONTRACT_REVERT", `Escrow failed: ${e.message.substring(0, 100)}`);
     }
     
     await prisma.task.update({ where: { id: task.id }, data: { status: "ESCROWED", paymentAmount: amountRequested, paymentId } });

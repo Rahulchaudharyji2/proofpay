@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
     }
     
     // Convert to Wei
-    const totalBudgetWei = ethers.parseEther(totalBudget.toString());
-    const dailyLimitWei = ethers.parseEther(dailyLimit.toString());
-    const perTxLimitWei = ethers.parseEther(perTransactionLimit.toString());
+    const totalBudgetWei = ethers.parseUnits(totalBudget.toString(), "mwei");
+    const dailyLimitWei = ethers.parseUnits(dailyLimit.toString(), "mwei");
+    const perTxLimitWei = ethers.parseUnits(perTransactionLimit.toString(), "mwei");
     const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60; // 1 year
 
     // 2. Call Smart Contract
