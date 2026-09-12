@@ -15,9 +15,10 @@ export const OUTCOME_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_OUTCOME_REGISTRY
 console.log("BLOCKCHAIN.TS INITIALIZED, RPC_URL is", RPC_URL);
 
 export const getProvider = () => {
-  // Pass 31337 explicitly and staticNetwork: true to prevent ethers v6 from repeatedly 
+  const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID) || 31337;
+  // Pass chainId explicitly and staticNetwork: true to prevent ethers v6 from repeatedly 
   // probing eth_chainId which can fail or get cached aggressively by Next.js
-  return new ethers.JsonRpcProvider(RPC_URL, 31337, { staticNetwork: true });
+  return new ethers.JsonRpcProvider(RPC_URL, chainId, { staticNetwork: true });
 };
 
 export const getWallet = () => {
