@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Suspense } from "react";
 
-export default function CreateTaskPage() {
+function CreateTaskForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialAgentId = searchParams.get("agentId");
@@ -168,5 +169,13 @@ export default function CreateTaskPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CreateTaskPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400 mt-20">Loading...</div>}>
+      <CreateTaskForm />
+    </Suspense>
   );
 }
