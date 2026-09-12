@@ -9,7 +9,8 @@
     "lint": "next lint",
     "contracts:compile": "hardhat compile",
     "contracts:test": "hardhat test",
-    "contracts:deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia"
+    "contracts:deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
