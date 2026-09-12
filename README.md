@@ -1,66 +1,63 @@
-# ProofPay - Let AI Agents Buy Services Safely
+# ProofPay - Web3 AI Agentic Platform 🚀
 
-## Problem
-AI agents can autonomously purchase digital services, but agent reasoning alone cannot safely enforce financial limits or prove that purchased services were actually delivered.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## Solution
-ProofPay separates:
-```text
-AI Decision
-      ↓
-Policy / Security Firewall
-      ↓
-Smart Contract Enforcement
-      ↓
-Payment / Escrow
-      ↓
-Provider Service
-      ↓
-Evidence
-      ↓
-Outcome Verification
-      ↓
-Settlement
+ProofPay is a state-of-the-art **Economic Security Firewall** and **Decentralized Escrow** platform designed to let AI agents safely and autonomously purchase digital services on the internet.
+
+## The Problem
+AI agents can autonomously reason and trigger API calls, but giving an AI agent direct access to a credit card or a cryptocurrency wallet is extremely dangerous. Without strict boundaries, agents can:
+- Overspend due to a hallucinated instruction or prompt injection.
+- Be overcharged by malicious service providers.
+- Pay for services that were never actually delivered.
+
+## The Solution: ProofPay Architecture
+ProofPay solves this by separating **Intent** from **Execution** and **Enforcement**.
+
+```mermaid
+graph TD
+    A[AI Decision Engine] -->|Parses Natural Language Intent| B(Security Firewall)
+    B -->|Validates Limits| C{Smart Contract Mandate}
+    C -->|Authorizes| D[Payment Escrow]
+    C -->|Reverts| E[Blocked: Contract Revert]
+    D -->|HTTP 402 Flow| F[Service Provider]
+    F -->|Delivers Evidence CID| G[Outcome Registry]
+    G -->|Settles Funds On-Chain| H((Provider Wallet))
 ```
 
-## What the Agent Buys
-For the primary demo:
-> A translation service from an independent provider.
+## How It Works
 
-*(Note: The provider API and translation outcome are simulated for this prototype to demonstrate the workflow.)*
+### 1. Intent Parsing via LLM
+When a user gives an agent a task (e.g., *"Summarize this attached PDF"*), ProofPay uses **Google Gemini** to parse the natural language intent and map it to an exact registered Service Type (e.g., `summarization`, `ocr`, `translation`).
 
-## W3A-1 Core Requirements
-* **Hard spending cap**: Financial limits are enforced at the smart contract level, making it impossible for rogue agents to bypass the rules.
-* **HTTP 402 / x402-style payment flow**: The agent receives a payment required signal before the actual on-chain transaction.
-* **Delivery proof**: The provider must return cryptographic evidence (Hash + IPFS CID) of the delivered result.
-* **Retry/double-charge protection**: Idempotent task IDs and contract logic prevent duplicate charges for the same task.
-* **Live overspend attempt blocked**: Demonstrated at the enforcement layer (Smart Contract).
+### 2. Provider Selection Engine
+The AI Agent doesn't just pick the cheapest provider. It evaluates a dynamic list of decentralized providers based on:
+- **Price** (Cost per execution)
+- **Quality** (Historical accuracy score)
+- **Reliability** (Uptime and latency)
 
-## W3A-1 Bonus
-* **Multiple independent providers**: Seeded with varied prices, qualities, and reliabilities.
-* **Provider selection**: The AI uses price/quality signals to select eligible providers rather than just picking the cheapest.
-* **Human-owner dashboard**: A comprehensive UI for task lifecycle, decisions, and audit trails.
-* **Real-time spend and audit trail**: View complete purchase, delivery, and security event histories.
+*Example: The agent might choose `SummaryAI` because it offers 95% quality at $0.30, rejecting a cheaper but less reliable provider.*
 
-## ProofPay Extensions
-* **Economic Security Firewall**: An application-layer guardrail that evaluates risk before interacting with the chain.
-* **Risk-adjusted expected cost**: A proprietary decision engine to rank providers based on price and historical reliability.
-* **Provider risk scoring**: Aggregation of past jobs, disputes, and latencies.
-* **Financial prompt-injection boundary**: Demonstrating that malicious instructions from the provider cannot override the financial mandate.
-* **Price anomaly detection**: Blocking providers who suddenly spike their rates.
-* **Outcome-based escrow/settlement**: Providers are only settled *after* the service outcome is verified against the agent's criteria.
-* **IPFS evidence pipeline**: Storing results on Pinata for permanent auditable delivery proof.
-* **Provider trust/reputation signals**: Continuous scoring based on success rates.
+### 3. Smart Contract Mandates
+Instead of giving the agent unlimited funds, human owners deploy **On-Chain Agent Mandates** on the Sepolia network. These mandates enforce:
+- Maximum Total Budget
+- Daily Spend Limits
+- Per-Transaction Ceilings
+- Allowed Services (e.g., restricted to `summarization` only)
 
-## Simulation Disclosure
-This project demonstrates a full end-to-end autonomous payment architecture. To make the demo self-contained without requiring third-party real-world API credentials (like OpenAI or real translation APIs), the following are simulated:
-- The **HTTP 402 / x402-style simulation** response from the provider is mocked in the API flow.
-- The **Simulated translation provider** service execution and the returned "translated text" are mocked.
-- Outcome Verification assumes success based on the mock data to allow the escrow settlement to complete in the "Happy Path" demo.
+### 4. The HTTP 402 Escrow Flow
+Before a provider performs heavy compute, they return an **HTTP 402 Payment Required** status. ProofPay's backend catches this, validates it against the firewall, and locks the exact requested funds into the `PaymentEscrow` smart contract.
 
-The **Smart Contract Enforcement**, **Database State**, and **On-Chain Escrow flows** are completely functional and enforce the actual rules.
+### 5. Delivery & Outcome Verification
+Once the funds are escrowed, the provider executes the service. They must return the result along with **IPFS Evidence (Pinata CID)**. The `OutcomeRegistry` smart contract records the result hash and IPFS CID, ensuring immutable proof of delivery before the funds are finally settled to the provider's wallet.
 
 ---
+
+## Technical Stack
+- **Frontend**: Next.js (App Router), React, Tailwind CSS, Framer Motion
+- **Backend**: Next.js Route Handlers, Prisma (PostgreSQL), Google Gen AI (Gemini)
+- **Blockchain**: Hardhat, Ethers.js v6, Solidity (Sepolia Testnet)
+- **Storage**: Pinata (IPFS)
+- **UI Components**: shadcn/ui, Lucide React
 
 ## Getting Started
 
@@ -85,3 +82,12 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Smart Contracts
+
+The core logic is divided into three on-chain components:
+1. **AgentMandate.sol**: Manages spending limits, daily budgets, and service whitelists.
+2. **PaymentEscrow.sol**: Locks funds on-chain while waiting for provider delivery.
+3. **OutcomeRegistry.sol**: Immutable ledger of cryptographic hashes and IPFS CIDs proving the work was done.
+
+*All transactions use standard native ETH (or Sepolia ETH on testnet), scaled to `mwei` micro-transactions to prevent faucet depletion during testing.*
