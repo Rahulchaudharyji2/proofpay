@@ -57,9 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await prisma.securityEvent.create({ data: { taskId: task.id, eventType: "PRICE_ANOMALY_SKIPPED", severity: "INFO", description: "No historical baseline available for price anomaly detection." } });
 
 
-    // STEP 4: On-Chain Escrow 
     const paymentId = `PAY-${task.id.substring(0,8)}-${Date.now()}`;
-    const amountRequestedWei = ethers.parseUnits(amountRequested.toString(), "mwei");
+    const amountRequestedWei = ethers.parseEther(amountRequested.toString());
     const escrowContract = getPaymentEscrowContract();
     
     console.log("Calling escrowPayment on-chain...");
@@ -69,8 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         task.agent.address,
         task.provider.address,
         task.serviceType,
-        amountRequestedWei,
-        { value: amountRequestedWei }
+        amountRequestedWei
       );
       await tx.wait();
       console.log(`escrowPayment confirmed: ${tx.hash}`);

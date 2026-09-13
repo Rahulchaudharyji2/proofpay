@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
        // For W3A-1 demo, we'll allow all registered providers by passing empty restrict list, or pass actual addresses if needed.
     }
     
-    // Convert to Wei
-    const totalBudgetWei = ethers.parseUnits(totalBudget.toString(), "mwei");
-    const dailyLimitWei = ethers.parseUnits(dailyLimit.toString(), "mwei");
-    const perTxLimitWei = ethers.parseUnits(perTransactionLimit.toString(), "mwei");
+    // Convert to Wei (using standard ether scale to match vault funding)
+    const totalBudgetWei = ethers.parseEther(totalBudget.toString());
+    const dailyLimitWei = ethers.parseEther(dailyLimit.toString());
+    const perTxLimitWei = ethers.parseEther(perTransactionLimit.toString());
     const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60; // 1 year
 
     // 2. Call Smart Contract

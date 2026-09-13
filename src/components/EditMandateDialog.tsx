@@ -2,17 +2,40 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
+import { parseEther } from "viem";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function EditMandateDialog({ agentId, currentMandate }: { agentId: string, currentMandate: any }) {
+const paymentEscrowABI = [
+  {
+    "inputs": [{"internalType": "address","name": "_agent","type": "address"}],
+    "name": "fundAgent",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address","name": "_agent","type": "address"},
+      {"internalType": "uint256","name": "_amount","type": "uint256"}
+    ],
+    "name": "withdrawFromAgentVault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
+export function EditMandateDialog({ agentId, agentAddress, currentMandate }: { agentId: string, agentAddress: string, currentMandate: any }) {
   const router = useRouter();
   const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [txHash, setTxHash] = useState("");
   
   const [formData, setFormData] = useState({
     totalBudget: currentMandate?.totalBudget?.toString() || "0",
@@ -28,8 +51,37 @@ export function EditMandateDialog({ agentId, currentMandate }: { agentId: string
     }
     
     setLoading(true);
+    setTxHash("");
     
     try {
+      const oldBudget = parseFloat(currentMandate?.totalBudget || "0");
+      const newBudget = parseFloat(formData.totalBudget);
+      const delta = newBudget - oldBudget;
+      
+      let hash = "";
+      const escrowAddress = process.env.NEXT_PUBLIC_PAYMENT_ESCROW_ADDRESS as `0x${string}`;
+
+      if (delta > 0) {
+        hash = await writeContractAsync({
+           address: escrowAddress,
+           abi: paymentEscrowABI,
+           functionName: 'fundAgent',
+           args: [agentAddress as `0x${string}`],
+           value: parseEther(delta.toString())
+        });
+      } else if (delta < 0) {
+        hash = await writeContractAsync({
+           address: escrowAddress,
+           abi: paymentEscrowABI,
+           functionName: 'withdrawFromAgentVault',
+           args: [agentAddress as `0x${string}`, parseEther(Math.abs(delta).toString())],
+        });
+      }
+      
+      if (hash) {
+        setTxHash(hash);
+      }
+      
       const res = await fetch(`/api/agents/${agentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -97,13 +149,20 @@ export function EditMandateDialog({ agentId, currentMandate }: { agentId: string
               required 
             />
           </div>
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-white/10 text-slate-300 hover:bg-white/5">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white">
-              {loading ? "Updating..." : "Save to Blockchain"}
-            </Button>
+          <DialogFooter className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {txHash && (
+              <div className="text-xs text-emerald-400 font-mono truncate max-w-[200px]">
+                Tx: {txHash}
+              </div>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-white/10 text-slate-300 hover:bg-white/5">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+                {loading ? "Processing..." : "Save & Escrow"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

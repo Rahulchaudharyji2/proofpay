@@ -12,7 +12,7 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#05050a] text-white">
+    <div className="flex min-h-screen bg-[#0d0e12] text-white">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
@@ -29,9 +29,9 @@ export default function DashboardLayout({
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 md:pl-64 overflow-y-auto bg-muted/20">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0a0a0f] sticky top-0 z-30">
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-[#0d0e12] sticky top-0 z-30">
           <div className="flex items-center gap-2 font-black tracking-tighter">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400 text-2xl">ProofPay</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400 text-2xl">ProofPay</span>
           </div>
           <button onClick={() => setSidebarOpen(true)} className="p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg">
             <Menu className="w-6 h-6" />

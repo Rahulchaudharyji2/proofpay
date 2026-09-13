@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ethers } from "ethers";
+import { getPaymentEscrowContract } from "@/lib/blockchain";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +28,16 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
   if (!agent) return notFound();
 
   const mandate = agent.mandates[0];
+  
+  // Fetch actual escrow balance from smart contract
+  let escrowBalance = "0";
+  try {
+    const escrowContract = getPaymentEscrowContract();
+    const balanceWei = await escrowContract.agentVaults(agent.address);
+    escrowBalance = ethers.formatEther(balanceWei);
+  } catch (err) {
+    console.error("Failed to fetch escrow balance:", err);
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto p-6">
@@ -38,7 +50,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
           <Link href={`/tasks/create?agentId=${agent.id}`}>
             <Button className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md">Create Task</Button>
           </Link>
-          <EditMandateDialog agentId={agent.id} currentMandate={mandate} />
+          <EditMandateDialog agentId={agent.id} agentAddress={agent.address} currentMandate={mandate} />
         </div>
       </div>
 
@@ -57,8 +69,12 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
             {mandate && (
               <>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Budget</span>
+                  <span className="text-muted-foreground">Authorized Budget</span>
                   <span className="font-mono font-medium">${mandate.totalBudget}</span>
+                </div>
+                <div className="flex justify-between items-center bg-emerald-500/10 p-3 rounded-md border border-emerald-500/20">
+                  <span className="text-emerald-400 font-semibold">Available Budget (Escrow)</span>
+                  <span className="font-mono font-bold text-emerald-400 text-lg">{escrowBalance} ETH</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Daily Limit</span>

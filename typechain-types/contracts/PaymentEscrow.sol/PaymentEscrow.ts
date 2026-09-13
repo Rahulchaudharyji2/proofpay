@@ -26,7 +26,9 @@ import type {
 export interface PaymentEscrowInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "agentVaults"
       | "escrowPayment"
+      | "fundAgent"
       | "intents"
       | "mandateContract"
       | "owner"
@@ -35,10 +37,13 @@ export interface PaymentEscrowInterface extends Interface {
       | "settlePayment"
       | "settledTasks"
       | "transferOwnership"
+      | "withdrawFromAgentVault"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "AgentFunded"
+      | "AgentWithdrawn"
       | "OwnershipTransferred"
       | "PaymentEscrowed"
       | "PaymentRefunded"
@@ -46,8 +51,16 @@ export interface PaymentEscrowInterface extends Interface {
   ): EventFragment;
 
   encodeFunctionData(
+    functionFragment: "agentVaults",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "escrowPayment",
     values: [string, AddressLike, AddressLike, string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "fundAgent",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "intents", values: [string]): string;
   encodeFunctionData(
@@ -75,11 +88,20 @@ export interface PaymentEscrowInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawFromAgentVault",
+    values: [AddressLike, BigNumberish]
+  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "agentVaults",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "escrowPayment",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "fundAgent", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "intents", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "mandateContract",
@@ -106,6 +128,46 @@ export interface PaymentEscrowInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawFromAgentVault",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace AgentFundedEvent {
+  export type InputTuple = [
+    agent: AddressLike,
+    funder: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [agent: string, funder: string, amount: bigint];
+  export interface OutputObject {
+    agent: string;
+    funder: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace AgentWithdrawnEvent {
+  export type InputTuple = [
+    agent: AddressLike,
+    receiver: AddressLike,
+    amount: BigNumberish
+  ];
+  export type OutputTuple = [agent: string, receiver: string, amount: bigint];
+  export interface OutputObject {
+    agent: string;
+    receiver: string;
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace OwnershipTransferredEvent {
@@ -232,6 +294,8 @@ export interface PaymentEscrow extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  agentVaults: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+
   escrowPayment: TypedContractMethod<
     [
       _paymentId: string,
@@ -241,8 +305,10 @@ export interface PaymentEscrow extends BaseContract {
       _amount: BigNumberish
     ],
     [void],
-    "payable"
+    "nonpayable"
   >;
+
+  fundAgent: TypedContractMethod<[_agent: AddressLike], [void], "payable">;
 
   intents: TypedContractMethod<
     [arg0: string],
@@ -286,10 +352,19 @@ export interface PaymentEscrow extends BaseContract {
     "nonpayable"
   >;
 
+  withdrawFromAgentVault: TypedContractMethod<
+    [_agent: AddressLike, _amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "agentVaults"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "escrowPayment"
   ): TypedContractMethod<
@@ -301,8 +376,11 @@ export interface PaymentEscrow extends BaseContract {
       _amount: BigNumberish
     ],
     [void],
-    "payable"
+    "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "fundAgent"
+  ): TypedContractMethod<[_agent: AddressLike], [void], "payable">;
   getFunction(
     nameOrSignature: "intents"
   ): TypedContractMethod<
@@ -345,7 +423,28 @@ export interface PaymentEscrow extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "withdrawFromAgentVault"
+  ): TypedContractMethod<
+    [_agent: AddressLike, _amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
+  getEvent(
+    key: "AgentFunded"
+  ): TypedContractEvent<
+    AgentFundedEvent.InputTuple,
+    AgentFundedEvent.OutputTuple,
+    AgentFundedEvent.OutputObject
+  >;
+  getEvent(
+    key: "AgentWithdrawn"
+  ): TypedContractEvent<
+    AgentWithdrawnEvent.InputTuple,
+    AgentWithdrawnEvent.OutputTuple,
+    AgentWithdrawnEvent.OutputObject
+  >;
   getEvent(
     key: "OwnershipTransferred"
   ): TypedContractEvent<
@@ -376,6 +475,28 @@ export interface PaymentEscrow extends BaseContract {
   >;
 
   filters: {
+    "AgentFunded(address,address,uint256)": TypedContractEvent<
+      AgentFundedEvent.InputTuple,
+      AgentFundedEvent.OutputTuple,
+      AgentFundedEvent.OutputObject
+    >;
+    AgentFunded: TypedContractEvent<
+      AgentFundedEvent.InputTuple,
+      AgentFundedEvent.OutputTuple,
+      AgentFundedEvent.OutputObject
+    >;
+
+    "AgentWithdrawn(address,address,uint256)": TypedContractEvent<
+      AgentWithdrawnEvent.InputTuple,
+      AgentWithdrawnEvent.OutputTuple,
+      AgentWithdrawnEvent.OutputObject
+    >;
+    AgentWithdrawn: TypedContractEvent<
+      AgentWithdrawnEvent.InputTuple,
+      AgentWithdrawnEvent.OutputTuple,
+      AgentWithdrawnEvent.OutputObject
+    >;
+
     "OwnershipTransferred(address,address)": TypedContractEvent<
       OwnershipTransferredEvent.InputTuple,
       OwnershipTransferredEvent.OutputTuple,

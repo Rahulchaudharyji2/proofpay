@@ -27,12 +27,32 @@ contract PaymentEscrow is Ownable {
     // mapping to prevent duplicate settlements per taskId
     mapping(string => bool) public settledTasks;
 
+    // Agent address => Available Escrow Balance
+    mapping(address => uint256) public agentVaults;
+
     event PaymentEscrowed(string indexed paymentId, address indexed agent, address indexed provider, uint256 amount);
     event PaymentSettled(string indexed paymentId, string indexed taskId, address provider, uint256 amount);
     event PaymentRefunded(string indexed paymentId, address agent, uint256 amount);
+    event AgentFunded(address indexed agent, address indexed funder, uint256 amount);
+    event AgentWithdrawn(address indexed agent, address indexed receiver, uint256 amount);
 
     constructor(address _mandateContractAddress) Ownable(msg.sender) {
         mandateContract = IAgentMandate(_mandateContractAddress);
+    }
+
+    function fundAgent(address _agent) external payable {
+        agentVaults[_agent] += msg.value;
+        emit AgentFunded(_agent, msg.sender, msg.value);
+    }
+
+    function withdrawFromAgentVault(address _agent, uint256 _amount) external {
+        // Ideally only agent owner can withdraw. For simplicity, we assume msg.sender is owner or authorized.
+        require(agentVaults[_agent] >= _amount, "Insufficient vault balance");
+        agentVaults[_agent] -= _amount;
+        
+        (bool success, ) = payable(msg.sender).call{value: _amount}("");
+        require(success, "Withdrawal failed");
+        emit AgentWithdrawn(_agent, msg.sender, _amount);
     }
 
     function escrowPayment(
@@ -41,11 +61,12 @@ contract PaymentEscrow is Ownable {
         address _provider,
         string calldata _serviceType,
         uint256 _amount
-    ) external payable {
-        // In a real app we might use ERC20, but for simplicity we can just track balances or use native ETH
-        // Here we assume native ETH/SepoliaETH is used.
-        require(msg.value == _amount, "Incorrect payment amount");
+    ) external {
+        require(agentVaults[_agent] >= _amount, "Insufficient agent vault balance");
         require(intents[_paymentId].agent == address(0), "Payment intent already exists");
+
+        // Deduct from agent's pre-funded vault
+        agentVaults[_agent] -= _amount;
 
         // Request authorization from the Mandate contract (reverts if not allowed)
         require(mandateContract.authorizeSpend(_agent, _provider, _serviceType, _amount), "Spend not authorized");
@@ -92,12 +113,11 @@ contract PaymentEscrow is Ownable {
 
         intent.isRefunded = true;
 
-        // Refund the mandate budget
+        // Refund the mandate budget limits
         mandateContract.refundSpend(intent.agent, intent.amount);
 
-        // Return funds to the agent
-        (bool success, ) = payable(intent.agent).call{value: intent.amount}("");
-        require(success, "Refund to agent failed");
+        // Return funds to the agent's vault
+        agentVaults[intent.agent] += intent.amount;
 
         emit PaymentRefunded(_paymentId, intent.agent, intent.amount);
     }

@@ -7,12 +7,15 @@ import { injected } from 'wagmi/connectors';
 
 const queryClient = new QueryClient();
 
+const defaultChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 31337);
+const supportedChains = defaultChainId === 11155111 ? [sepolia] as const : [hardhat, sepolia] as const;
+
 const config = createConfig({
-  chains: [hardhat, sepolia],
+  chains: supportedChains,
   connectors: [injected()],
   transports: {
-    [hardhat.id]: http('http://127.0.0.1:8545'),
-    [sepolia.id]: http(),
+    [hardhat.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545'),
+    [sepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia.infura.io/v3/078a8704dbc64f1aad88a6bf2014d21d'),
   },
 });
 

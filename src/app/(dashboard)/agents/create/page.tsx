@@ -7,11 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
+import { parseEther } from "viem";
+
+const paymentEscrowABI = [
+  {
+    "inputs": [{"internalType": "address","name": "_agent","type": "address"}],
+    "name": "fundAgent",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+];
 
 export default function CreateAgentPage() {
   const router = useRouter();
   const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "Research Assistant",
@@ -47,6 +59,25 @@ export default function CreateAgentPage() {
       
       const data = await res.json();
       if (res.ok) {
+        // Fund Escrow automatically!
+        try {
+          const escrowAddress = process.env.NEXT_PUBLIC_PAYMENT_ESCROW_ADDRESS as `0x${string}`;
+          const budget = parseFloat(formData.totalBudget);
+          
+          if (budget > 0 && data.agent?.address) {
+            await writeContractAsync({
+               address: escrowAddress,
+               abi: paymentEscrowABI,
+               functionName: 'fundAgent',
+               args: [data.agent.address as `0x${string}`],
+               value: parseEther(budget.toString())
+            });
+          }
+        } catch (escrowErr) {
+          console.error("Escrow funding failed:", escrowErr);
+          alert("Agent created, but escrow funding failed. Please fund manually from the dashboard.");
+        }
+        
         router.push("/agents");
       } else {
         alert("Error creating agent: " + data.error);
