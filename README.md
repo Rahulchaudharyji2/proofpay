@@ -1,4 +1,4 @@
-# ProofPay - Web3 AI Agentic Platform 🚀
+# ProofPay - Web3 AI Agentic Platform 
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
